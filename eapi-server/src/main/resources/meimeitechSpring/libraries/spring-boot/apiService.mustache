@@ -1,0 +1,20 @@
+package {{servicePackage}};
+
+import com.meimeitech.common.vo.Response;
+{{#imports}}import {{import}};
+{{/imports}}
+import java.util.List;
+
+/**
+ *  the {{{baseName}}} Service
+ */
+{{#operations}}
+public interface {{classname}}Service {
+{{#operation}}
+    /**
+     *  {{{notes}}}
+     */
+    Response {{operationId}}({{#allParams}}{{>queryParamsService}}{{>pathParamsService}}{{>headerParamsService}}{{>bodyParamsService}}{{>formParamsService}}{{#hasMore}},{{/hasMore}}{{/allParams}}){{^jdk8}};{{/jdk8}}
+{{/operation}}
+}
+{{/operations}}
