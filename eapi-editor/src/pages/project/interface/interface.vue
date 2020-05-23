@@ -14,9 +14,12 @@
 			<Button @click="deleteInterface" size="small">删除</Button>
 			<Button @click="editStatus = true;" size="small">设置状态</Button>
 			<Button @click="showCopyModal" size="small" v-if="singleSelect">复制</Button>
+			<Button @click="selectInterfaceDoc" size="small">接口文档</Button>
+			<Button @click="exportSelect" size="small">导出选中</Button>
 			<!--<Button size="small">设置标签</Button>-->
 		</Form>
-		<Table stripe ref="selection" :columns="columns" :loading="loading" :data="filterInterfaces" @on-selection-change="onCelectionChange"></Table>
+		<Table stripe ref="selection" :columns="columns" :loading="loading" :data="filterInterfaces"
+			@on-selection-change="onSelectionChange"></Table>
 
 		<Modal v-model="addInterfaceModal" title="新建接口" width="700" :mask-closable=false>
 			<Form ref="interfaceItem" :model="interfaceItem" :label-width=80 :rules="ruleValidate">
@@ -45,7 +48,8 @@
 				</FormItem>
 				<div class="clearfix"></div>
 				<FormItem label="描述" prop="description">
-					<i-input v-model="interfaceItem.description" type="textarea" :autosize="{minRows: 2,maxRows: 5}" placeholder="描述"></i-input>
+					<i-input v-model="interfaceItem.description" type="textarea" :autosize="{minRows: 2,maxRows: 5}"
+						placeholder="描述"></i-input>
 				</FormItem>
 			</Form>
 			<div slot="footer">
@@ -55,12 +59,12 @@
 		</Modal>
 
 		<Modal v-model="editStatus"
-				title="设置状态"
-				@on-ok="okEditStatus">
-			<Form  class="project-interface-form form-in-table" :label-width=100>
+			title="设置状态"
+			@on-ok="okEditStatus">
+			<Form class="project-interface-form form-in-table" :label-width=100>
 				<FormItem label="设置状态" style="width: 80%;float:left;">
 					<Select v-model="status">
-						<Option value="100" >未开始</Option>
+						<Option value="100">未开始</Option>
 						<Option value="200">开发中</Option>
 						<Option value="300">测试中</Option>
 						<Option value="400">已完成</Option>
@@ -98,7 +102,8 @@
 				</FormItem>
 				<div class="clearfix"></div>
 				<FormItem label="描述" prop="description">
-					<i-input v-model="copyInterfaceItem.description" type="textarea" :autosize="{minRows: 2,maxRows: 5}" placeholder="描述"></i-input>
+					<i-input v-model="copyInterfaceItem.description" type="textarea" :autosize="{minRows: 2,maxRows: 5}"
+						placeholder="描述"></i-input>
 				</FormItem>
 			</Form>
 			<div class="clearfix"></div>
@@ -119,9 +124,11 @@
 		deleteInterfaceInBatch,
 		checkInterfaceExists,
 		updateInterface,
-		changeStatus
+		changeStatus,
+		exportByInterfaceIds
 	} from '../../../utils/interface';
 	import {getStore} from '../../../utils/storage';
+	import {download} from '../../../utils/utils';
 
 	export default {
 		data() {
@@ -157,6 +164,7 @@
 				});
 			};
 			return {
+				projectId: '',
 				addInterfaceModal: false,
 				interfaceItem: {
 					name: '',
@@ -192,7 +200,7 @@
 									style: {
 										'text-decoration': 'line-through'
 									}
-								},params.row.name);
+								}, params.row.name);
 							} else {
 								return h('a', {
 									on: {
@@ -246,7 +254,7 @@
 									style: {
 										'text-decoration': 'line-through'
 									}
-								},params.row.path);
+								}, params.row.path);
 							} else {
 								return h('a', {
 									on: {
@@ -390,12 +398,13 @@
 		},
 		methods: {
 			init() {
+				this.projectId = this.state.projectId || getStore('projectId');
 				this.getInterfaceList();
 				this.getTagList();
 			},
-			getInterfaceList: function () {
+			getInterfaceList() {
 				this.loading = true;
-				let projectId = this.state.projectId || getStore('projectId');
+				let projectId = this.projectId;
 				this.interfaceItem.projectId = projectId;
 				getInterfaceList({projectId: projectId}, (response) => {
 					if (response.header.code === '0') {
@@ -407,9 +416,8 @@
 				});
 				this.loading = false;
 			},
-			getTagList: async function () {
-				let projectId = this.state.projectId || getStore('projectId');
-				await getTagList({projectId: projectId}, (response) => {
+			getTagList() {
+				getTagList({projectId: this.projectId}, (response) => {
 					if (response.header.code === '0') {
 						this.tags = response.body;
 					} else {
@@ -427,16 +435,16 @@
 					operationId: '',
 					description: '',
 					deprecated: false,
-					projectId: this.state.projectId || getStore('projectId')
+					projectId: this.projectId
 				};
 			},
-			addInterface: function () {
-				this.$refs['interfaceItem'].validate(async (valid) => {
+			addInterface() {
+				this.$refs['interfaceItem'].validate((valid) => {
 					if (valid) {
 						if (this.interfaceItem.method.toLowerCase() !== 'get') {
 							this.interfaceItem.requestType = 'body'; // 默认值
 						}
-						await createInterface(this.interfaceItem, (response) => {
+						createInterface(this.interfaceItem, (response) => {
 							if (response.header.code === '0') {
 								this.init();
 								this.reset();
@@ -451,12 +459,14 @@
 			okCopyInteface: function () {
 				this.$refs['copyInterfaceItem'].validate((valid) => {
 					if (valid) {
-						copyInterface(this.copyInterfaceItem, (response) => {this.init(); });
+						copyInterface(this.copyInterfaceItem, (response) => {
+							this.init();
+						});
 						this.copyStatus = false;
 					}
 				});
 			},
-			onCelectionChange(selection) {
+			onSelectionChange(selection) {
 				this.showEditMenus = selection.length !== 0;
 				this.singleSelect = selection.length === 1;
 				this.selection = selection;
@@ -480,6 +490,19 @@
 						this.$Message.success("取消删除！");
 					}
 				});
+			},
+			exportSelect() {
+				let selectIds = [];
+				this.selection.forEach(selected => selectIds.push(selected.id));
+				exportByInterfaceIds({projectId: this.projectId, interfaceIds: selectIds}, (response) => {
+					download(response, 'swagger.json');
+				});
+			},
+			selectInterfaceDoc() {
+				let selectIds = [];
+				this.selection.forEach(selected => selectIds.push(selected.id));
+				this.$router.push({name: 'swaggerUI', query: {projectId: this.projectId, interfaceIds: selectIds}});
+//				window.open('#/swagger?projectId=' + this.projectId + '&interfaceIds=' + selectIds, '_blank');
 			},
 			newInterface() {
 				this.addInterfaceModal = true;
@@ -538,7 +561,7 @@
 			background: #f8f8f9;
 			position: absolute;
 			z-index: 2;
-			height: 39px;
+			height: 38px;
 			line-height: 38px;
 			left: 60px;
 			top: 127px;
@@ -549,14 +572,14 @@
 		.path-input .ivu-form-item-content {
 			margin-left: 0px !important;
 		}
-		.ivu-table-wrapper,.ivu-page{
+		.ivu-table-wrapper, .ivu-page {
 			margin-top: 15px;
 		}
-		.isdeprecated{
-			color: rgba(0,0,0,.25);
+		.isdeprecated {
+			color: rgba(0, 0, 0, .25);
 			border-color: #dcdee2;
 			&:hover {
-				color: rgba(0,0,0,.25);
+				color: rgba(0, 0, 0, .25);
 			}
 		}
 	}

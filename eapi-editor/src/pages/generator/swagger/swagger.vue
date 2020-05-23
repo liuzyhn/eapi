@@ -22,18 +22,22 @@
 						<Option value="axios-fetch">axios-fetch</Option>
 					</Select>
 				</FormItem>
-				<FormItem label="library" prop="library" v-if="springShow">
-					<Select v-model="swaggerConfig.library" placeholder="请选择">
-						<Option value="spring-boot">spring-boot</Option>
-					</Select>
-				</FormItem>
 
-				<FormItem label="Api包名" prop="apiPackage" v-if="springShow">
-					<Input v-model="swaggerConfig.apiPackage"/>
-				</FormItem>
-				<FormItem label="Model包名" prop="modelPackage" v-if="springShow">
-					<Input v-model="swaggerConfig.modelPackage"/>
-				</FormItem>
+				<spring-boot :swaggerConfig="swaggerConfig" v-if="swaggerConfig.lang == 'meimeitechSpring'"></spring-boot>
+				<axios :swaggerConfig="swaggerConfig" v-if="swaggerConfig.lang === 'axios-fetch'"></axios>
+
+				<!--<FormItem label="library" prop="library" v-if="swaggerConfig.lang === 'meimeitechSpring'">-->
+					<!--<Select v-model="swaggerConfig.library" placeholder="请选择">-->
+						<!--<Option value="spring-boot">spring-boot</Option>-->
+					<!--</Select>-->
+				<!--</FormItem>-->
+
+				<!--<FormItem label="Api包名" prop="apiPackage" v-if="swaggerConfig.lang === 'meimeitechSpring'">-->
+					<!--<Input v-model="swaggerConfig.apiPackage"/>-->
+				<!--</FormItem>-->
+				<!--<FormItem label="Model包名" prop="modelPackage" v-if="swaggerConfig.lang === 'meimeitechSpring'">-->
+					<!--<Input v-model="swaggerConfig.modelPackage"/>-->
+				<!--</FormItem>-->
 
 			</Form>
 			<div slot="footer">
@@ -45,14 +49,19 @@
 </template>
 
 <script  type="text/ecmascript-6">
-
 	import {getProjectList, generatorSwaggerGen, generatorSwaggerDownload} from '../../../utils/interface';
 	import {setStore, getStore} from '../../../utils/storage';
 	import * as consts from '../../../utils/const';
 	import {baseUrl} from '../../../utils/env';
+	import springBoot from '../../../components/generator/config/spring-boot';
+	import axios from '../../../components/generator/config/axios';
 
 	export default {
 		name: "codeGeneratorSwagger",
+    components: {
+      'spring-boot': springBoot,
+      'axios': axios
+    },
 		data() {
 			return {
 				projects: [],
@@ -77,18 +86,27 @@
 				loading: false,
 				submitLoading: false,
 				columnDef: [
+//					{
+//						type: "index",
+//						width: 60,
+//						align: "center"
+//					},
 					{
-						type: "index",
-						width: 60,
-						align: "center"
-					},
-					{
-						title: "id",
+						title: "项目Id",
 						key: "id"
 					},
 					{
-						title: "title",
-						key: "title"
+						title: "项目名称",
+						key: "title",
+						render: (h, params) => {
+							return h('a', {
+								on: {
+									click: () => {
+										this.$router.push({path: '/code/generator/swagger/interface', query: {projectId: params.row.id}});
+									}
+								}
+							}, params.row.title);
+						}
 					},
 					{
 						title: "操作",
@@ -116,25 +134,24 @@
 											}
 										}
 									},
-									"生成"
-								),
-
+									"全量生成"
+								)
 							]);
 						}
 					}
 				]
 			};
 		},
-		computed: {
-			springShow() {
-				// TODO 显示配置服务器获取
-				return this.swaggerConfig.lang === 'meimeitechSpring';
-			}
-		},
+		// computed: {
+		// 	springShow() {
+		// 		// TODO 显示配置服务器获取
+		// 		return ;
+		// 	}
+		// },
 		methods: {
 			langChange() {
 				this.swaggerConfig.library =  '';
-				if (!this.springShow) {
+				if (this.swaggerConfig.lang != 'meimeitechSpring') {
 					this.swaggerConfig.apiPackage =  '';
 					this.swaggerConfig.modelPackage =  '';
 				} else {
@@ -156,8 +173,10 @@
 					return false;
 				}
 				let model = JSON.parse(db);
-				this.swaggerConfig.apiPackage = model.targetPackage + '.swagger.controller';
-				this.swaggerConfig.modelPackage = model.targetPackage + '.swagger.model';
+				this.swaggerConfig.apiPackage = model.artifactId + '.' + model.groupId + '.gen.swagger.controller';
+				this.swaggerConfig.modelPackage = model.artifactId + '.' + model.groupId + '.gen.swagger.model';
+				this.swaggerConfig.artifactId = model.artifactId;
+				this.swaggerConfig.groupId = model.groupId;
 				return true;
 			},
 			download(data) {
