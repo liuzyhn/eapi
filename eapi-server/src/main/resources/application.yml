@@ -1,17 +1,36 @@
-spring.profiles.active: dev
+#spring.profiles.active: dev
 
 server:
   port: 7050
+  servlet:
+    context-path: /eapi
+  compression:
+    enabled: true
+    mime-types: application/json,text/css,text/html
+    min-response-size: 2048
+  error:
+    whitelabel:
+      enabled: false
+  forward-headers-strategy: native
 logging:
   level:
-    com.meimeitech: debug
+    com.shawn: debug
 spring:
+  h2:
+    server:
+      enabled: true
+      args: -tcp -web
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
   jpa:
     hibernate:
       ddl-auto: update
       naming:
         implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyHbmImpl
-        physical-strategy: com.meimeitech.eapi.util.ImprovedNamingStrategy
+        physical-strategy: com.shawn.eapi.util.ImprovedNamingStrategy
     show-sql: true
     database-platform: org.hibernate.dialect.H2Dialect
   datasource:
@@ -35,36 +54,25 @@ spring:
   freemarker:
     template-loader-path: classpath:/freemarker
     suffix: .ftl
-
----
-spring:
-  profiles: dev
-  h2:
-    server:
-      enabled: true
-      args: -tcp -web
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: true
 host:
-  server: http://localhost:8080
+  server: http://193.112.105.8/static/eapi-editor/latest/index.html
 swagger:
-  host: localhost:7050
+  host: 193.112.105.8:7050
   contact-email: easyapi@163.com
 
 ---
 spring:
-  profiles: prod
-  datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:file:~/.h2/swagger;AUTO_SERVER=TRUE
-    username: sa
-    password: sa
-    data: classpath:sql/data.sql
+  profiles: dev
+  resources:
+    static_locations:
+      - file:eapi-web/dist/
+#  devtools:
+#    restart:
+#      additional_paths:
+#        - eapi-web/dist/
+#      additional_exclude: "**/*.js,**/*.css,**/*.html"
 host:
-  server: http://10.133.255.201:5001/pc/swagger-editor/index.html
+  server: http://localhost:7050/eapi
 swagger:
-  host: 10.133.255.201:7050
+  host: localhost:7050
   contact-email: easyapi@163.com

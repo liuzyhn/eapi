@@ -1,5 +1,7 @@
+.DS_Store
 .gradle
-/build/
+*/build/
+/code_gen_temp/
 !gradle/wrapper/gradle-wrapper.jar
 
 ### STS ###
@@ -26,4 +28,29 @@
 /.nb-gradle/
 /out/
 /db/
-/code_gen_temp/
+
+
+
+
+node_modules
+/dist
+
+# local env files
+.env.local
+.env.*.local
+package-lock.json
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*
+*.iml
+package-lock.json
